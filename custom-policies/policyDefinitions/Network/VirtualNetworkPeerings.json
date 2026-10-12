@@ -1,0 +1,405 @@
+{
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "description": "Enable, audit or disable the execution of the policy",
+        "displayName": "Effect"
+      },
+      "allowedValues": [
+        "auditIfNotExists",
+        "deployIfNotExists",
+        "disabled"
+      ],
+      "defaultValue": "auditIfNotExists"
+    },
+    "virtualNetworkLocation": {
+      "type": "String",
+      "metadata": {
+        "description": "Deploy the peerings when matching the specified location",
+        "strongType": "location",
+        "displayName": "Virtual Network Location"
+      }
+    },
+    "virtualNetworkIdBastion": {
+      "type": "String",
+      "metadata": {
+        "description": "Resource Id of the virtual network. Example: /subscriptions/YourSubscriptionId/resourceGroups/YourResourceGroupName/providers/Microsoft.Network/virtualNetworks/Name",
+        "displayName": "The Resource ID of the Bastion virtual network",
+        "strongType": "Microsoft.Network/virtualNetworks"
+      }
+    },
+    "virtualNetworkIdHub": {
+      "type": "String",
+      "metadata": {
+        "description": "Resource Id of the virtual network. Example: /subscriptions/YourSubscriptionId/resourceGroups/YourResourceGroupName/providers/Microsoft.Network/virtualNetworks/Name",
+        "displayName": "The Resource ID of the Hub virtual network",
+        "strongType": "Microsoft.Network/virtualNetworks"
+      }
+    },
+    "virtualNetworkIdRouteServer": {
+      "type": "String",
+      "metadata": {
+        "description": "Resource Id of the virtual network. Example: /subscriptions/YourSubscriptionId/resourceGroups/YourResourceGroupName/providers/Microsoft.Network/virtualNetworks/Name",
+        "displayName": "The Resource ID of the Route Server virtual network",
+        "strongType": "Microsoft.Network/virtualNetworks"
+      }
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Network/virtualNetworks"
+        },
+        {
+          "field": "location",
+          "equals": "[parameters('virtualNetworkLocation')]"
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+        "roleDefinitionIds": [
+          "/providers/microsoft.authorization/roleDefinitions/fd9d4e64-5cdd-4b63-8f6c-6f8d5d5d2e3b"
+        ],
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/peeringState",
+              "equals": "Connected"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/peeringSyncLevel",
+              "equals": "FullyInSync"
+            },
+            {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/remoteVirtualNetwork.id",
+                      "equals": "[parameters('virtualNetworkIdBastion')]"
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowVirtualNetworkAccess",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowForwardedTraffic",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowGatewayTransit",
+                      "equals": false
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/useRemoteGateways",
+                      "equals": false
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/remoteVirtualNetwork.id",
+                      "equals": "[parameters('virtualNetworkIdHub')]"
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowVirtualNetworkAccess",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowForwardedTraffic",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowGatewayTransit",
+                      "equals": false
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/useRemoteGateways",
+                      "equals": false
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/remoteVirtualNetwork.id",
+                      "equals": "[parameters('virtualNetworkIdRouteServer')]"
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowVirtualNetworkAccess",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowForwardedTraffic",
+                      "equals": true
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowGatewayTransit",
+                      "equals": false
+                    },
+                    {
+                      "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/useRemoteGateways",
+                      "equals": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "deployment": {
+          "properties": {
+            "mode": "Incremental",
+            "parameters": {
+              "parVirtualNetworkIdBastion": {
+                "value": "[parameters('virtualNetworkIdBastion')]"
+              },
+              "parVirtualNetworkIdHub": {
+                "value": "[parameters('virtualNetworkIdHub')]"
+              },
+              "parVirtualNetworkIdRouteServer":{
+                "value": "[parameters('virtualNetworkIdRouteServer')]"
+              },
+              "parVirtualNetworkIdSpoke": {
+                "value": "[field('id')]"
+              },
+              "parVirtualNetworkNameSpoke": {
+                "value": "[field('name')]"
+              }
+            },
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "parVirtualNetworkIdBastion": {
+                  "type": "String"
+                },
+                "parVirtualNetworkIdHub": {
+                  "type": "String"
+                },
+                "parVirtualNetworkIdRouteServer": {
+                  "type": "String"
+                },
+                "parVirtualNetworkIdSpoke": {
+                  "type": "String"
+                },
+                "parVirtualNetworkNameSpoke": {
+                  "type": "String"
+                }
+              },
+              "resources": [
+                {
+                  "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                  "apiVersion": "2025-09-01",
+                  "name": "[format('{0}/peer-{1}', parameters('parVirtualNetworkNameSpoke'), split(parameters('parVirtualNetworkIdBastion'), '/')[8])]",
+                  "properties": {
+                    "allowForwardedTraffic": true,
+                    "allowGatewayTransit": false,
+                    "allowVirtualNetworkAccess": true,
+                    "remoteVirtualNetwork": {
+                      "id": "[parameters('parVirtualNetworkIdBastion')]"
+                    },
+                    "useRemoteGateways": false
+                  }
+                },
+                {
+                  "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                  "apiVersion": "2025-09-01",
+                  "name": "[format('{0}/peer-{1}', parameters('parVirtualNetworkNameSpoke'), split(parameters('parVirtualNetworkIdHub'), '/')[8])]",
+                  "properties": {
+                    "allowForwardedTraffic": true,
+                    "allowGatewayTransit": false,
+                    "allowVirtualNetworkAccess": true,
+                    "remoteVirtualNetwork": {
+                      "id": "[parameters('parVirtualNetworkIdHub')]"
+                    },
+                    "useRemoteGateways": false
+                  }
+                },
+                {
+                  "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                  "apiVersion": "2025-09-01",
+                  "name": "[format('{0}/peer-{1}', parameters('parVirtualNetworkNameSpoke'), split(parameters('parVirtualNetworkIdRouteServer'), '/')[8])]",
+                  "properties": {
+                    "allowForwardedTraffic": true,
+                    "allowGatewayTransit": false,
+                    "allowVirtualNetworkAccess": true,
+                    "remoteVirtualNetwork": {
+                      "id": "[parameters('parVirtualNetworkIdRouteServer')]"
+                    },
+                    "useRemoteGateways": false
+                  }
+                },
+                {
+                  "type": "Microsoft.Resources/deployments",
+                  "apiVersion": "2026-06-01",
+                  "name": "[format('deploy-peer-{1}', split(parameters('parVirtualNetworkIdBastion'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                  "subscriptionId": "[split(parameters('parVirtualNetworkIdBastion'), '/')[2]]",
+                  "resourceGroup": "[split(parameters('parVirtualNetworkIdBastion'), '/')[4]]",
+                  "properties": {
+                    "mode": "Incremental",
+                    "parameters": {
+                      "parVirtualNetworkIdBastion": {
+                        "value": "[parameters('parVirtualNetworkIdBastion')]"
+                      },
+                      "parVirtualNetworkIdSpoke": {
+                        "value": "[parameters('parVirtualNetworkIdSpoke')]"
+                      },
+                      "parVirtualNetworkNameSpoke": {
+                        "value": "[parameters('parVirtualNetworkNameSpoke')]"
+                      }
+                    },
+                    "template": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "parVirtualNetworkIdBastion": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkIdSpoke": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkNameSpoke": {
+                          "type": "String"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                          "apiVersion": "2025-09-01",
+                          "name": "[format('{0}/peer-{1}', split(parameters('parVirtualNetworkIdBastion'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                          "properties": {
+                            "allowForwardedTraffic": true,
+                            "allowGatewayTransit": false,
+                            "allowVirtualNetworkAccess": true,
+                            "remoteVirtualNetwork": {
+                              "id": "[parameters('parVirtualNetworkIdSpoke')]"
+                            },
+                            "useRemoteGateways": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+
+                },
+                {
+                  "type": "Microsoft.Resources/deployments",
+                  "apiVersion": "2026-06-01",
+                  "name": "[format('deploy-peer-{1}', split(parameters('parVirtualNetworkIdHub'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                  "subscriptionId": "[split(parameters('parVirtualNetworkIdHub'), '/')[2]]",
+                  "resourceGroup": "[split(parameters('parVirtualNetworkIdHub'), '/')[4]]",
+                  "properties": {
+                    "mode": "Incremental",
+                    "parameters": {
+                      "parVirtualNetworkIdHub": {
+                        "value": "[parameters('parVirtualNetworkIdHub')]"
+                      },
+                      "parVirtualNetworkIdSpoke": {
+                        "value": "[parameters('parVirtualNetworkIdSpoke')]"
+                      },
+                      "parVirtualNetworkNameSpoke": {
+                        "value": "[parameters('parVirtualNetworkNameSpoke')]"
+                      }
+                    },
+                    "template": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "parVirtualNetworkIdHub": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkIdSpoke": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkNameSpoke": {
+                          "type": "String"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                          "apiVersion": "2025-09-01",
+                          "name": "[format('{0}/peer-{1}', split(parameters('parVirtualNetworkIdHub'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                          "properties": {
+                            "allowForwardedTraffic": false,
+                            "allowGatewayTransit": false,
+                            "allowVirtualNetworkAccess": true,
+                            "remoteVirtualNetwork": {
+                              "id": "[parameters('parVirtualNetworkIdSpoke')]"
+                            },
+                            "useRemoteGateways": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "Microsoft.Resources/deployments",
+                  "apiVersion": "2026-06-01",
+                  "name": "[format('deploy-peer-{1}', split(parameters('parVirtualNetworkIdRouteServer'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                  "subscriptionId": "[split(parameters('parVirtualNetworkIdRouteServer'), '/')[2]]",
+                  "resourceGroup": "[split(parameters('parVirtualNetworkIdRouteServer'), '/')[4]]",
+                  "properties": {
+                    "mode": "Incremental",
+                    "parameters": {
+                      "parVirtualNetworkIdRouteServer": {
+                        "value": "[parameters('parVirtualNetworkIdRouteServer')]"
+                      },
+                      "parVirtualNetworkIdSpoke": {
+                        "value": "[parameters('parVirtualNetworkIdSpoke')]"
+                      },
+                      "parVirtualNetworkNameSpoke": {
+                        "value": "[parameters('parVirtualNetworkNameSpoke')]"
+                      }
+                    },
+                    "template": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "parVirtualNetworkIdRouteServer": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkIdSpoke": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkNameSpoke": {
+                          "type": "String"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                          "apiVersion": "2025-09-01",
+                          "name": "[format('{0}/peer-{1}', split(parameters('parVirtualNetworkIdRouteServer'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                          "properties": {
+                            "allowForwardedTraffic": false,
+                            "allowGatewayTransit": true,
+                            "allowVirtualNetworkAccess": true,
+                            "remoteVirtualNetwork": {
+                              "id": "[parameters('parVirtualNetworkIdSpoke')]"
+                            },
+                            "useRemoteGateways": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
