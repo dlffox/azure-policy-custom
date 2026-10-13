@@ -1,0 +1,221 @@
+{
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "description": "Enable, audit or disable the execution of the policy",
+        "displayName": "Effect"
+      },
+      "allowedValues": [
+        "auditIfNotExists",
+        "deployIfNotExists",
+        "disabled"
+      ],
+      "defaultValue": "deployIfNotExists"
+    },
+    "virtualNetworkLocation": {
+      "type": "String",
+      "metadata": {
+        "description": "Deploy the peerings when matching the specified location",
+        "strongType": "location",
+        "displayName": "Virtual Network Location"
+      }
+    },
+    "virtualNetworkIdRemote": {
+      "type": "String",
+      "metadata": {
+        "description": "Resource Id of the remote virtual network.",
+        "displayName": "The Resource ID of the remote virtual network",
+        "strongType": "Microsoft.Network/virtualNetworks"
+      }
+    },
+    "allowVirtualNetworkAccess": {
+      "type": "Boolean",
+      "metadata": {
+        "description": "Specifies whether the VMs in the local virtual network space would be able to access the VMs in remote virtual network space.",
+        "displayName": "Allow Virtual Network Access"
+      },
+      "defaultValue": true
+    },
+    "allowForwardedTraffic": {
+      "type": "Boolean",
+      "metadata": {
+        "description": "Specifies whether the forwarded traffic from the VMs in the local virtual network will be allowed/disallowed in remote virtual network.",
+        "displayName": "Allow Forwarded Traffic"
+      },
+      "defaultValue": true
+    },
+    "allowGatewayTransit": {
+      "type": "Boolean",
+      "metadata": {
+        "description": "Specifies If gateway links can be used in remote virtual networking to link to this virtual network.",
+        "displayName": "Allow Gateway Transit"
+      },
+      "defaultValue": false
+    },
+    "useRemoteGateways": {
+      "type": "Boolean",
+      "metadata": {
+        "description": "Specifies if remote gateways can be used on this virtual network. If the flag is set to true, and allowGatewayTransit on remote peering is also true, virtual network will use gateways of remote virtual network for transit. Only one peering can have this flag set to true. This flag cannot be set if virtual network already has a gateway.",
+        "displayName": "Use Remote Gateways"
+      },
+      "defaultValue": false
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Network/virtualNetworks"
+        },
+        {
+          "field": "location",
+          "equals": "[parameters('virtualNetworkLocation')]"
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+        "roleDefinitionIds": [
+          "/providers/microsoft.authorization/roleDefinitions/fd9d4e64-5cdd-4b63-8f6c-6f8d5d5d2e3b"
+        ],
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/peeringState",
+              "equals": "Connected"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/peeringSyncLevel",
+              "equals": "FullyInSync"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/remoteVirtualNetwork.id",
+              "equals": "[parameters('virtualNetworkIdRemote')]"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowVirtualNetworkAccess",
+              "equals": "[parameters('allowVirtualNetworkAccess')]"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowForwardedTraffic",
+              "equals": "[parameters('allowForwardedTraffic')]"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/allowGatewayTransit",
+              "equals": "[parameters('allowGatewayTransit')]"
+            },
+            {
+              "field": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/useRemoteGateways",
+              "equals": "[parameters('useRemoteGateways')]"
+            }
+          ]
+        },
+        "deployment": {
+          "properties": {
+            "mode": "Incremental",
+            "parameters": {
+              "parVirtualNetworkIdRemote": {
+                "value": "[parameters('virtualNetworkIdRemote')]"
+              },
+              "parVirtualNetworkIdSpoke": {
+                "value": "[field('id')]"
+              },
+              "parVirtualNetworkNameSpoke": {
+                "value": "[field('name')]"
+              }
+            },
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "parVirtualNetworkIdRemote": {
+                  "type": "String"
+                },
+                "parVirtualNetworkIdSpoke": {
+                  "type": "String"
+                },
+                "parVirtualNetworkNameSpoke": {
+                  "type": "String"
+                }
+              },
+              "resources": [
+                {
+                  "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                  "apiVersion": "2025-09-01",
+                  "name": "[format('{0}/peer-{1}', parameters('parVirtualNetworkNameSpoke'), split(parameters('parVirtualNetworkIdRemote'), '/')[8])]",
+                  "properties": {
+                    "allowForwardedTraffic": true,
+                    "allowGatewayTransit": false,
+                    "allowVirtualNetworkAccess": true,
+                    "remoteVirtualNetwork": {
+                      "id": "[parameters('parVirtualNetworkIdRemote')]"
+                    },
+                    "useRemoteGateways": false
+                  }
+                },
+                {
+                  "type": "Microsoft.Resources/deployments",
+                  "apiVersion": "2026-06-01",
+                  "name": "[format('deploy-peer-{1}', split(parameters('parVirtualNetworkIdRemote'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                  "subscriptionId": "[split(parameters('parVirtualNetworkIdRemote'), '/')[2]]",
+                  "resourceGroup": "[split(parameters('parVirtualNetworkIdRemote'), '/')[4]]",
+                  "properties": {
+                    "mode": "Incremental",
+                    "parameters": {
+                      "parVirtualNetworkIdRemote": {
+                        "value": "[parameters('parVirtualNetworkIdRemote')]"
+                      },
+                      "parVirtualNetworkIdSpoke": {
+                        "value": "[parameters('parVirtualNetworkIdSpoke')]"
+                      },
+                      "parVirtualNetworkNameSpoke": {
+                        "value": "[parameters('parVirtualNetworkNameSpoke')]"
+                      }
+                    },
+                    "template": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "parVirtualNetworkIdRemote": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkIdSpoke": {
+                          "type": "String"
+                        },
+                        "parVirtualNetworkNameSpoke": {
+                          "type": "String"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+                          "apiVersion": "2025-09-01",
+                          "name": "[format('{0}/peer-{1}', split(parameters('parVirtualNetworkIdRemote'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
+                          "properties": {
+                            "allowForwardedTraffic": true,
+                            "allowGatewayTransit": false,
+                            "allowVirtualNetworkAccess": true,
+                            "remoteVirtualNetwork": {
+                              "id": "[parameters('parVirtualNetworkIdSpoke')]"
+                            },
+                            "useRemoteGateways": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
