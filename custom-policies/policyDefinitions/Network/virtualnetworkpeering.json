@@ -17,7 +17,7 @@
     "virtualNetworkLocation": {
       "type": "String",
       "metadata": {
-        "description": "Deploy the peerings when matching the specified location",
+        "description": "Deploy the peering when matching the specified location",
         "strongType": "location",
         "displayName": "Virtual Network Location"
       }
@@ -26,7 +26,7 @@
       "type": "String",
       "metadata": {
         "description": "Resource Id of the remote virtual network.",
-        "displayName": "The Resource ID of the remote virtual network",
+        "displayName": "The Resource Id of the remote virtual network",
         "strongType": "Microsoft.Network/virtualNetworks"
       }
     },
@@ -61,6 +61,22 @@
         "displayName": "Use Remote Gateways"
       },
       "defaultValue": false
+    },
+    "tagName": {
+      "type": "String",
+      "metadata": {
+        "description": "Tag name used to disable peering at the resource level. Set to true if peering should be disabled.",
+        "displayName": "Peering Disable Tag Name"
+      },
+      "defaultValue": "PeeringDisable"
+    },
+    "tagValue": {
+      "type": "String",
+      "metadata": {
+        "description": "Tag value used to disable peering at the resource level. Set to true if peering should be disabled.",
+        "displayName": "Peering Disable Tag Value"
+      },
+      "defaultValue": "true"
     }
   },
   "policyRule": {
@@ -73,6 +89,10 @@
         {
           "field": "location",
           "equals": "[parameters('virtualNetworkLocation')]"
+        },
+        {
+          "field": "[concat('tags[', parameters('tagName'), ']')]",
+          "notEquals": "[parameters('tagValue')]"
         }
       ]
     },
@@ -122,6 +142,18 @@
               "parVirtualNetworkIdRemote": {
                 "value": "[parameters('virtualNetworkIdRemote')]"
               },
+              "parAllowVirtualNetworkAccess": {
+                "value": "[parameters('allowVirtualNetworkAccess')]"
+              },
+              "parAllowForwardedTraffic": {
+                "value": "[parameters('allowForwardedTraffic')]"
+              },
+              "parAllowGatewayTransit": {
+                "value": "[parameters('allowGatewayTransit')]"
+              },
+              "parUseRemoteGateways": {
+                "value": "[parameters('useRemoteGateways')]"
+              },
               "parVirtualNetworkIdSpoke": {
                 "value": "[field('id')]"
               },
@@ -136,6 +168,18 @@
                 "parVirtualNetworkIdRemote": {
                   "type": "String"
                 },
+                "parAllowVirtualNetworkAccess": {
+                  "type": "bool"
+                },
+                "parAllowForwardedTraffic": {
+                  "type": "bool"
+                },
+                "parAllowGatewayTransit": {
+                  "type": "bool"
+                },
+                "parUseRemoteGateways": {
+                  "type": "bool"
+                },
                 "parVirtualNetworkIdSpoke": {
                   "type": "String"
                 },
@@ -149,13 +193,13 @@
                   "apiVersion": "2025-09-01",
                   "name": "[format('{0}/peer-{1}', parameters('parVirtualNetworkNameSpoke'), split(parameters('parVirtualNetworkIdRemote'), '/')[8])]",
                   "properties": {
-                    "allowForwardedTraffic": true,
-                    "allowGatewayTransit": false,
-                    "allowVirtualNetworkAccess": true,
+                    "allowForwardedTraffic": "[parameters('parAllowForwardedTraffic')]",
+                    "allowGatewayTransit": "[parameters('parAllowGatewayTransit')]",
+                    "allowVirtualNetworkAccess": "[parameters('parAllowVirtualNetworkAccess')]",
                     "remoteVirtualNetwork": {
                       "id": "[parameters('parVirtualNetworkIdRemote')]"
                     },
-                    "useRemoteGateways": false
+                    "useRemoteGateways": "[parameters('parUseRemoteGateways')]"
                   }
                 },
                 {
@@ -169,6 +213,9 @@
                     "parameters": {
                       "parVirtualNetworkIdRemote": {
                         "value": "[parameters('parVirtualNetworkIdRemote')]"
+                      },
+                      "parAllowGatewayTransit": {
+                        "value": "[parameters('parUseRemoteGateways')]"
                       },
                       "parVirtualNetworkIdSpoke": {
                         "value": "[parameters('parVirtualNetworkIdSpoke')]"
@@ -184,6 +231,9 @@
                         "parVirtualNetworkIdRemote": {
                           "type": "String"
                         },
+                        "parAllowGatewayTransit": {
+                          "type": "bool"
+                        },
                         "parVirtualNetworkIdSpoke": {
                           "type": "String"
                         },
@@ -198,7 +248,7 @@
                           "name": "[format('{0}/peer-{1}', split(parameters('parVirtualNetworkIdRemote'), '/')[8], parameters('parVirtualNetworkNameSpoke'))]",
                           "properties": {
                             "allowForwardedTraffic": true,
-                            "allowGatewayTransit": false,
+                            "allowGatewayTransit": "[parameters('parAllowGatewayTransit')]",
                             "allowVirtualNetworkAccess": true,
                             "remoteVirtualNetwork": {
                               "id": "[parameters('parVirtualNetworkIdSpoke')]"
@@ -209,7 +259,6 @@
                       ]
                     }
                   }
-
                 }
               ]
             }
